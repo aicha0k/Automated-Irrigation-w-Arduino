@@ -9,14 +9,12 @@ private:
     float temperatura;
     float umidade;
 
-    bool lerDados(uint8_t dados[5]); // função auxiliar para capturar os 40 bits
-
 public:
     DHT11(uint8_t pino);
     void iniciar();
-    float lerTemperatura();
-    float lerUmidade();
-    void mostrarLeituras();
+    bool atualizar();          // <--- Lê uma única vez
+    float getTemperatura();    
+    float getUmidade();
 };
 
 #endif

@@ -21,11 +21,16 @@ private:
 public:
     Controle(DHT11* sensorDHT, RTC* rtc, Rele* rele);
 
-    void lerTemperatura();
-    void lerUmidade();
+    void lerTemperatura();  // lê tudo
+    void lerUmidade();      // só imprime
+
     void controlarIrrigacao();
     void testarSistema();
     void exibirStatus();
+    
+    float getTemperatura() { return temperatura; }
+    float getUmidade()     { return umidade; }
+
 };
 
 #endif

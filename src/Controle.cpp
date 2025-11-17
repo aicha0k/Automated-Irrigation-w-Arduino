@@ -9,20 +9,27 @@ Controle::Controle(DHT11* sensorDHT, RTC* rtc, Rele* rele) {
     umidade = 0.0;
 }
 
+// Agora lerTemperatura() faz a leitura COMPLETA do DHT uma vez só
 void Controle::lerTemperatura() {
-    temperatura = sensorDHT->lerTemperatura();
+
+    if (sensorDHT->atualizar()) {      // lê temperatura E umidade num ciclo só
+        temperatura = sensorDHT->getTemperatura();
+        umidade     = sensorDHT->getUmidade();
+    } else {
+        Serial.println("Falha ao atualizar DHT11!");
+    }
+
     Serial.print("Temperatura: ");
     Serial.println(temperatura);
 }
 
 void Controle::lerUmidade() {
-    umidade = sensorDHT->lerUmidade();
+    // NÃO ler de novo — DHT11 não aguenta leituras seguidas.
     Serial.print("Umidade: ");
     Serial.println(umidade);
 }
 
 void Controle::controlarIrrigacao() {
-    // Exemplo simples de regra
     if (umidade < 40.0) {
         Serial.println("Umidade baixa, irrigando...");
         rele->ligar();
@@ -34,8 +41,8 @@ void Controle::controlarIrrigacao() {
 
 void Controle::testarSistema() {
     Serial.println("=== Teste de Sistema ===");
-    lerTemperatura();
-    lerUmidade();
+    lerTemperatura(); // Já atualiza tudo
+    lerUmidade();     // Só imprime
     rtc->mostrarHora();
     controlarIrrigacao();
 }
