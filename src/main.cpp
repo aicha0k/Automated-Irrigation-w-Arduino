@@ -3,11 +3,13 @@
 #include "DHT11.h"
 #include "RTC.h"
 #include "Rele.h"
+#include "ServidorWeb.h"
 
 // ==== OBJETOS DOS MÓDULOS ====
 DHT11 sensorDHT(PINO_DHT);
 RTC    moduloRTC;
 Rele   moduloRele(PINO_RELE);
+ServidorWeb servidor(WIFI_SSID, WIFI_PASSWORD);
 
 // ==== OBJETO PRINCIPAL DO SISTEMA ====
 Controle sistema(&sensorDHT, &moduloRTC, &moduloRele);
@@ -21,6 +23,9 @@ void setup() {
     sensorDHT.iniciar();
     moduloRTC.iniciar();
     moduloRele.iniciar();
+
+    // Inicializa o ponto de acesso e o servidor web
+    servidor.iniciarAP();
 
     // Ajusta RTC para hora do computador
     // moduloRTC.ajustarParaHoraDoComputador();
