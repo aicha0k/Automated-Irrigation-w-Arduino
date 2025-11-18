@@ -22,7 +22,8 @@ private:
     int minuto = 0;
     int segundo = 0;
     int duracao = 0; 
-    String ciclo = "unico"; 
+    String ciclo = "unico";
+    bool _atualizada = false; 
 
     const char* ARQUIVO_CONFIG = "/config.json"; // Nome do arquivo na Flash
 
@@ -44,6 +45,15 @@ public:
     void imprimir(); // Imprime a config atual no Serial
     int getAno() const { return ano; }
     String getCiclo() const { return ciclo; }
+    int getDia() const { return dia; }
+    int getMes() const { return mes; }
+    int getHora() const { return hora; }
+    int getMinuto() const { return minuto; }
+    int getSegundo() const { return segundo; }
+    int getDuracao() const { return duracao; }
+    
+    bool isAtualizada() const { return _atualizada; }
+    void clearAtualizada() { _atualizada = false; }
 };
 
 #endif // CONFIGURACAOPERSISTENTE_H

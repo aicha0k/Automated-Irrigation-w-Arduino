@@ -111,6 +111,7 @@ void ConfiguracaoPersistente::salvarTemporariamente(int d, int m, int a, int h, 
     duracao = dur;
     ciclo = c;
     // O método 'salvar()' deve ser chamado separadamente para persistir na Flash!
+    _atualizada = true;
 }
 
 /**

@@ -3,6 +3,7 @@
 #include "ServidorWeb.h"
 //#include "Configuracao.h"
 #include "ConfiguracaoPersistente.h"
+#include "RTC.h"
 
 // 2. DEFINIÇÕES GLOBAIS
 const char* WIFI_SSID = "ESP32-Configuracao";
@@ -17,6 +18,7 @@ const int LED_BUILTIN_PIN = 2; // Pino 2 é comumente usado como LED interno em 
 ControladorValvula valvula(VALVULA_PIN, LED_BUILTIN_PIN);
 ServidorWeb servidor(WIFI_SSID, WIFI_PASSWORD);
 ConfiguracaoPersistente configAtual;
+RTC myRTC;
 
 // Declaração da rotina principal
 void minhaRotinaDeExecucao(); 
@@ -25,8 +27,27 @@ void minhaRotinaDeExecucao();
 void setup() {
     Serial.begin(115200); 
     servidor.iniciarAP();
-
     configAtual.carregar();
+
+    if (!rtc.iniciar()) {
+        Serial.println("Falha ao inicializar o RTC. O agendamento nao funcionará.");
+    }
+
+    if (configAtual.getAno() != 0) {
+        // Força o agendamento da configuração persistida
+        // (Simulamos o _atualizada = true para que a rotina faça o trabalho)
+        configAtual.salvarTemporariamente(
+            configAtual.getDia(), 
+            configAtual.getMes(), 
+            configAtual.getAno(), 
+            configAtual.getHora(), 
+            configAtual.getMinuto(), 
+            configAtual.getSegundo(), 
+            configAtual.getDuracao(), 
+            configAtual.getCiclo()
+        );
+    }
+    
 }
 
 // 5. FUNÇÃO DE LOOP
@@ -42,7 +63,34 @@ void loop() {
 // 6. SUA ROTINA PRINCIPAL (Executada em segundo plano)
 void minhaRotinaDeExecucao() {
     // Exemplo de controle e feedback usando os objetos
-    digitalWrite(LED_BUILTIN_PIN, HIGH); // Indica que a rotina está livre
+    //digitalWrite(LED_BUILTIN_PIN, HIGH); // Indica que a rotina está livre
+
+    if (configAtual.isAtualizada()) {
+        Serial.println("Detectada nova configuracao. Agendando no RTC...");
+        
+        // Passa a nova configuração para a classe RTC
+        String ciclo = configAtual.getCiclo();
+        
+        // Você pode refinar a lógica de agendamento diário ou único aqui
+        if (ciclo.equalsIgnoreCase("unico") || ciclo.equalsIgnoreCase("diario")) {
+            
+            rtc.agendarAcionamento(
+                configAtual.getAno(), 
+                configAtual.getMes(), 
+                configAtual.getDia(),
+                configAtual.getHora(), 
+                configAtual.getMinuto(), 
+                configAtual.getSegundo(),
+                configAtual.getDuracao() 
+            );
+        }
+        
+        // Limpa a flag para que o agendamento não seja refeito a cada loop
+        configAtual.clearAtualizada(); 
+    }
+    
+    // 2. CHECAGEM DOS ALARMES DO RTC
+    checarAlarmesRTC();
 
     static long lastMsg = 0;
     if (millis() - lastMsg > 5000) { 
