@@ -1,70 +1,63 @@
-#include <Arduino.h>
-#include "Controle.h"
-#include "DHT11.h"
-#include "RTC.h"
-#include "Rele.h"
+// 1. INCLUSÃO DE BIBLIOTECAS E CLASSES
+#include "ControladorValvula.h"
 #include "ServidorWeb.h"
+//#include "Configuracao.h"
+#include "ConfiguracaoPersistente.h"
 
-// ==== OBJETOS DOS MÓDULOS ====
-DHT11 sensorDHT(PINO_DHT);
-RTC    moduloRTC;
-Rele   moduloRele(PINO_RELE);
+// 2. DEFINIÇÕES GLOBAIS
+const char* WIFI_SSID = "ESP32-Configuracao";
+const char* WIFI_PASSWORD = "123456789"; 
+
+// Pinos de hardware
+const int VALVULA_PIN = 26;
+const int LED_BUILTIN_PIN = 2; // Pino 2 é comumente usado como LED interno em DevKits
+
+// 3. OBJETOS GLOBAIS
+// Instanciação das Classes
+ControladorValvula valvula(VALVULA_PIN, LED_BUILTIN_PIN);
 ServidorWeb servidor(WIFI_SSID, WIFI_PASSWORD);
+ConfiguracaoPersistente configAtual;
 
-// ==== OBJETO PRINCIPAL DO SISTEMA ====
-Controle sistema(&sensorDHT, &moduloRTC, &moduloRele);
+// Declaração da rotina principal
+void minhaRotinaDeExecucao(); 
 
+// 4. FUNÇÃO DE CONFIGURAÇÃO (SETUP)
 void setup() {
-    Serial.begin(9600);
-    delay(1000);
-
-    Serial.println("\n=== Sistema de Irrigação — Teste Completo ===");
-
-    sensorDHT.iniciar();
-    moduloRTC.iniciar();
-    moduloRele.iniciar();
-
-    // Inicializa o ponto de acesso e o servidor web
+    Serial.begin(115200); 
     servidor.iniciarAP();
 
-    // Ajusta RTC para hora do computador
-    // moduloRTC.ajustarParaHoraDoComputador();
-
-    // Agendar alarme de 1 minuto para frente
-    DateTime agora = moduloRTC.getNow();
-    moduloRTC.agendarAcionamento(
-        agora.year(), agora.month(), agora.day(),
-        agora.hour(), agora.minute() + 1, agora.second(),
-        1
-    );
+    configAtual.carregar();
 }
 
+// 5. FUNÇÃO DE LOOP
 void loop() {
+    // Manuseio de clientes (Acessa e modifica os objetos 'valvula' e 'configAtual')
+    servidor.manusearClientes(valvula, configAtual); 
 
-  if (sensorDHT.atualizar()) {
-
-      Serial.print("Temp: ");
-      Serial.print(sensorDHT.getTemperatura());
-      Serial.print(" °C  |  Umidade: ");
-      Serial.print(sensorDHT.getUmidade());
-      Serial.println(" %");
-
-  } else {
-      Serial.println("Falha ao ler DHT11.");
-  }
-
-  moduloRTC.mostrarHora();
-
-  if (moduloRTC.alarmeLigou()) {
-    Serial.println(">>> ALARME 1 DISPAROU — LIGAR LED <<<");
-    moduloRele.ligar();    // <<< LIGA O LED
+    // Rotina principal do sistema embarcado
+    minhaRotinaDeExecucao(); 
+    delay(10); 
 }
 
-// ======== EVENTO DE ALARME 2 (DESLIGAR LED) ========
-if (moduloRTC.alarmeDesligou()) {
-    Serial.println(">>> ALARME 2 DISPAROU — DESLIGAR LED <<<");
-    moduloRele.desligar(); // <<< DESLIGA O LED
-}
+// 6. SUA ROTINA PRINCIPAL (Executada em segundo plano)
+void minhaRotinaDeExecucao() {
+    // Exemplo de controle e feedback usando os objetos
+    digitalWrite(LED_BUILTIN_PIN, HIGH); // Indica que a rotina está livre
 
-  delay(5000);
+    static long lastMsg = 0;
+    if (millis() - lastMsg > 5000) { 
+        lastMsg = millis();
+        
+        Serial.println("\n----------------------------------------------");
+        Serial.println("Executando rotina principal...");
+        
+        // Imprime a configuração salva (chama o método da classe Configuracao)
+        configAtual.imprimir(); 
+        
+        Serial.println("Status da Válvula: " + valvula.getEstado());
+        Serial.println("----------------------------------------------");
+        
+        // Lógica de Agendamento: Aqui você usaria 'configAtual' para checar a hora atual (via RTC, por exemplo)
+        // e chamar valvula.ligar() ou valvula.desligar() no momento certo.
+    }
 }

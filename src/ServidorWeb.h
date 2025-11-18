@@ -2,11 +2,8 @@
 #define SERVIDORWEB_H
 
 #include <WiFi.h>
-#include "Rele.h"
-
-// Forward declaration: a classe `Configuracao` é usada por referência.
-class Configuracao;
-
+#include "ControladorValvula.h"
+#include "ConfiguracaoPersistente.h"
 
 /**
  * @brief Classe para gerenciar a interface web, Wi-Fi e processamento de requisições.
@@ -20,7 +17,7 @@ private:
 
     // Métodos privados
     String getParameterValue(String uri, String param);
-    void gerarPaginaHTML(WiFiClient client, Rele &valvula);
+    void gerarPaginaHTML(WiFiClient client, String valvulaEstado);
 
 public:
     // Construtor
@@ -28,7 +25,7 @@ public:
 
     // Métodos públicos
     void iniciarAP();
-    void manusearClientes(Rele& valvula, Configuracao& config);
+    void manusearClientes(ControladorValvula& valvula, ConfiguracaoPersistente& config);
 };
 
 #endif // SERVIDORWEB_H

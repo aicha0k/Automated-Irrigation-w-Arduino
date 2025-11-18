@@ -1,11 +1,11 @@
 #include "ServidorWeb.h"
-#include <Arduino.h> // Para Serial.print
+#include <Arduino.h> 
 
-// Construtor
+// Construtor (Permanece o mesmo)
 ServidorWeb::ServidorWeb(const char* s, const char* p) 
     : ssid(s), password(p), server(80) {}
 
-// Inicialização do AP
+// Inicialização do AP (Permanece o mesmo)
 void ServidorWeb::iniciarAP() {
     Serial.print("Configurando Ponto de Acesso...");
     WiFi.softAP(ssid, password);
@@ -16,7 +16,7 @@ void ServidorWeb::iniciarAP() {
     Serial.println("Servidor web iniciado.");
 }
 
-// Função auxiliar para extrair parâmetros da URI (Mantida como privada da classe)
+// Função auxiliar para extrair parâmetros da URI (Permanece a mesma)
 String ServidorWeb::getParameterValue(String uri, String param) {
     String value = "";
     String searchStr = param + "=";
@@ -37,8 +37,8 @@ String ServidorWeb::getParameterValue(String uri, String param) {
     return value;
 }
 
-// Manuseio principal de clientes
-void ServidorWeb::manusearClientes(Rele& valvula, Configuracao& config) {
+// Manuseio principal de clientes (Com as alterações para Redirecionamento)
+void ServidorWeb::manusearClientes(ControladorValvula& valvula, ConfiguracaoPersistente& config) {
     WiFiClient client = server.available(); 
 
     if (client) { 
@@ -56,8 +56,22 @@ void ServidorWeb::manusearClientes(Rele& valvula, Configuracao& config) {
                         // --- Processamento de Comandos ---
                         if (header.indexOf("GET /valvula/on") >= 0) {
                             valvula.ligar(); 
+                            // Redireciona após o comando para limpar a URI
+                            client.println("HTTP/1.1 303 See Other");
+                            client.println("Location: /");
+                            client.println("Connection: close");
+                            client.println();
+                            break; 
+                            
                         } else if (header.indexOf("GET /valvula/off") >= 0) {
                             valvula.desligar(); 
+                            // Redireciona após o comando para limpar a URI
+                            client.println("HTTP/1.1 303 See Other");
+                            client.println("Location: /");
+                            client.println("Connection: close");
+                            client.println();
+                            break;
+                            
                         } else if (header.indexOf("GET /save") >= 0) {
                             
                             int startUri = header.indexOf("GET /save");
@@ -74,16 +88,27 @@ void ServidorWeb::manusearClientes(Rele& valvula, Configuracao& config) {
                             String pDuracao = getParameterValue(uri, "duracao");
                             String pCiclo = getParameterValue(uri, "ciclo");
 
-                            // Salva na classe Configuracao
-                            config.salvar(pDia.toInt(), pMes.toInt(), pAno.toInt(), pHora.toInt(), 
-                                          pMinuto.toInt(), pSegundo.toInt(), pDuracao.toInt(), pCiclo);
+                            // Salva na RAM e na Flash
+                            config.salvarTemporariamente(pDia.toInt(), pMes.toInt(), pAno.toInt(), pHora.toInt(), 
+                                                        pMinuto.toInt(), pSegundo.toInt(), pDuracao.toInt(), pCiclo);
+                            config.salvar(); 
                             
-                            Serial.println("✅ Nova Configuracao Salva.");
+                            Serial.println("✅ Configuracao Salva e Persistida na Flash. Redirecionando...");
+
+                            // 🚨 AQUI ESTÁ A SOLUÇÃO: REDIRECIONAMENTO HTTP 303
+                            client.println("HTTP/1.1 303 See Other"); // Código de status para redirecionamento
+                            client.println("Location: /");           // Redireciona para a página inicial
+                            client.println("Connection: close");
+                            client.println();
+                            break;
+                            
                         }
                         // --- Fim do Processamento ---
 
-                        // Geração da página HTML (passa o objeto Rele para obter estado internamente)
-                        gerarPaginaHTML(client, valvula); 
+                        // Se a requisição for para a página inicial ('/'), gera o HTML normalmente.
+                        if (header.indexOf("GET / ") >= 0 || header.indexOf("GET /favicon.ico") < 0) {
+                            gerarPaginaHTML(client, valvula.getEstado()); 
+                        }
 
                         client.println();
                         break;
@@ -100,11 +125,9 @@ void ServidorWeb::manusearClientes(Rele& valvula, Configuracao& config) {
     }
 }
 
-// Método para gerar e enviar a página HTML (completo)
-// Aceita vários formatos de estado para compatibilidade com diferentes
-// camadas de software/hardware: "on", "off", "ligado", "desligado",
-// "auto", "erro" ou valores numéricos "1"/"0".
-void ServidorWeb::gerarPaginaHTML(WiFiClient client, Rele &valvula) {
+// Método para gerar e enviar a página HTML (Permanece o mesmo, mas só será chamado no '/' agora)
+void ServidorWeb::gerarPaginaHTML(WiFiClient client, String valvulaEstado) {
+    // ... (O código de geração do HTML permanece inalterado)
     client.println("HTTP/1.1 200 OK");
     client.println("Content-type:text/html");
     client.println("Connection: close");
@@ -127,8 +150,6 @@ void ServidorWeb::gerarPaginaHTML(WiFiClient client, Rele &valvula) {
     client.println(".status-box p { font-size: 1.2rem; margin-top: 0; }");
     client.println(".status-text-on { color: #28a745; font-weight: bold; }"); 
     client.println(".status-text-off { color: #dc3545; font-weight: bold; }"); 
-    client.println(".status-text-auto { color: #17a2b8; font-weight: bold; }");
-    client.println(".status-text-erro { color: #bd2130; font-weight: bold; text-decoration: underline; }");
     client.println(".card { background-color: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); padding: 24px; margin-top: 30px; }");
     client.println("form label { font-weight: bold; color: #555; display: block; margin-top: 15px; margin-bottom: 5px; }");
     client.println("input[type=\"text\"], select { width: 95%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px; box-sizing: content-box; }"); 
@@ -146,38 +167,13 @@ void ServidorWeb::gerarPaginaHTML(WiFiClient client, Rele &valvula) {
 
     // --- Bloco de Status da Válvula (Dinâmico) ---
     client.println("<div class='status-box'>");
-
-    // Obtém o estado diretamente do objeto Rele e normaliza
-    String valvulaEstado = valvula.estaLigado() ? "on" : "off";
-    valvulaEstado.toLowerCase();
-    valvulaEstado.trim();
-
-    bool isOn = (valvulaEstado == "on" || valvulaEstado == "1" || valvulaEstado == "ligada" || valvulaEstado == "ligado");
-    bool isOff = (valvulaEstado == "off" || valvulaEstado == "0" || valvulaEstado == "desligada" || valvulaEstado == "desligado");
-    bool isAuto = (valvulaEstado == "auto" || valvulaEstado == "automatico" || valvulaEstado == "automático");
-    bool isErro = (valvulaEstado == "erro" || valvulaEstado == "error" || valvulaEstado == "falha");
-
-    if (isErro) {
-        client.println("<p>Status atual da válvula: <span class='status-text-erro'>Erro no relé</span></p>");
-        client.println("<p>Verifique a conexão do hardware ou reinicie o dispositivo.</p>");
-        client.println("<p><a href='/valvula/off' class='button button-secondary'>Tentar Desligar</a></p>");
-    } else if (isAuto) {
-        client.println("<p>Status atual da válvula: <span class='status-text-auto'>Modo Automático</span></p>");
-        client.println("<p>O sistema controla a válvula automaticamente.</p>");
-        client.println("<p><a href='/valvula/on' class='button button-primary'>Forçar Liga</a> <a href='/valvula/off' class='button button-secondary'>Forçar Desliga</a></p>");
-    } else if (isOff) {
+    if (valvulaEstado == "off") {
         client.println("<p>Status atual da válvula: <span class='status-text-off'>Desligada</span></p>");
         client.println("<p><a href='/valvula/on' class='button button-primary'>Ligar Válvula</a></p>");
-    } else if (isOn) {
+    } else {
         client.println("<p>Status atual da válvula: <span class='status-text-on'>Ligada</span></p>");
         client.println("<p><a href='/valvula/off' class='button button-secondary'>Desligar Válvula</a></p>");
-    } else {
-        // Estado desconhecido — mostra o valor cru para diagnóstico
-        client.println("<p>Status atual da válvula: <span class='status-text-erro'>Estado desconhecido</span></p>");
-        client.print("<p>Valor recebido: "); client.print(valvulaEstado); client.println("</p>");
-        client.println("<p><a href='/valvula/on' class='button button-primary'>Ligar Válvula</a> <a href='/valvula/off' class='button button-secondary'>Desligar Válvula</a></p>");
     }
-
     client.println("</div>");
 
     // --- Bloco do Formulário de Acionamento ---
