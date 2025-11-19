@@ -154,5 +154,3 @@ bool RTC::alarmeDesligou() {
     }
     return false;
 }
-
-

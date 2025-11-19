@@ -6,7 +6,7 @@
 #include "Rele.h"
 
 // ==== CONFIGURAÇÃO DE PINOS ====
-#define PINO_DHT 7
+#define PINO_DHT 2
 #define PINO_RELE 8
 
 class Controle {
