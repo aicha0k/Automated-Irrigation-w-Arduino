@@ -9,9 +9,6 @@
 #define PINO_DHT 7
 #define PINO_RELE 8
 
-// ==== Configuracao Servidor Web ====
-const char* WIFI_SSID = "ESP32-Servidor";
-const char* WIFI_PASSWORD = "123456789";
 
 class Controle {
 private:

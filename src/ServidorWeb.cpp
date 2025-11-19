@@ -38,7 +38,7 @@ String ServidorWeb::getParameterValue(String uri, String param) {
 }
 
 // Manuseio principal de clientes (Com as alterações para Redirecionamento)
-void ServidorWeb::manusearClientes(ControladorValvula& valvula, ConfiguracaoPersistente& config) {
+void ServidorWeb::manusearClientes(Rele& valvula, ConfiguracaoPersistente& config) {
     WiFiClient client = server.available(); 
 
     if (client) { 
@@ -95,7 +95,7 @@ void ServidorWeb::manusearClientes(ControladorValvula& valvula, ConfiguracaoPers
                             
                             Serial.println("✅ Configuracao Salva e Persistida na Flash. Redirecionando...");
 
-                            // 🚨 AQUI ESTÁ A SOLUÇÃO: REDIRECIONAMENTO HTTP 303
+                            // AQUI ESTÁ A SOLUÇÃO: REDIRECIONAMENTO HTTP 303
                             client.println("HTTP/1.1 303 See Other"); // Código de status para redirecionamento
                             client.println("Location: /");           // Redireciona para a página inicial
                             client.println("Connection: close");
@@ -107,7 +107,13 @@ void ServidorWeb::manusearClientes(ControladorValvula& valvula, ConfiguracaoPers
 
                         // Se a requisição for para a página inicial ('/'), gera o HTML normalmente.
                         if (header.indexOf("GET / ") >= 0 || header.indexOf("GET /favicon.ico") < 0) {
-                            gerarPaginaHTML(client, valvula.getEstado()); 
+                            String estado;
+                            if(valvula.estaLigado()){
+                                estado = "on"; 
+                            } else {
+                                estado = "off";
+                            }
+                            gerarPaginaHTML(client, estado); 
                         }
 
                         client.println();

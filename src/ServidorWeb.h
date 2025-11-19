@@ -4,6 +4,7 @@
 #include <WiFi.h>
 #include "ControladorValvula.h"
 #include "ConfiguracaoPersistente.h"
+#include "Rele.h"
 
 /**
  * @brief Classe para gerenciar a interface web, Wi-Fi e processamento de requisições.
@@ -25,7 +26,7 @@ public:
 
     // Métodos públicos
     void iniciarAP();
-    void manusearClientes(ControladorValvula& valvula, ConfiguracaoPersistente& config);
+    void manusearClientes(Rele& valvula, ConfiguracaoPersistente& config);
 };
 
 #endif // SERVIDORWEB_H

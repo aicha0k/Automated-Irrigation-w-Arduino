@@ -30,7 +30,7 @@ void RTC::atualizarHora() {
 
 void RTC::mostrarHora() {
     atualizarHora();
-    char buffer[20];
+    char buffer[40];
     sprintf(buffer, "Hora atual: %02d:%02d:%02d",
             agora.hour(), agora.minute(), agora.second());
     Serial.println(buffer);
@@ -61,13 +61,13 @@ rtc.setAlarm2(horarioOff, DS3231_A2_Hour);
 Serial.println();
 Serial.println("=== Alarme configurado ===");
 
-char buffer1[40];
+char buffer1[80];
 sprintf(buffer1, "Ligar:    %02d/%02d/%04d %02d:%02d:%02d",
 horarioOn.day(), horarioOn.month(), horarioOn.year(),
 horarioOn.hour(), horarioOn.minute(), horarioOn.second());
 Serial.println(buffer1);
 
-char buffer2[40];
+char buffer2[80];
 sprintf(buffer2, "Desligar: %02d/%02d/%04d %02d:%02d:%02d",
 horarioOff.day(), horarioOff.month(), horarioOff.year(),
 horarioOff.hour(), horarioOff.minute(), horarioOff.second());
