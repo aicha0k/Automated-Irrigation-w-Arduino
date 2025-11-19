@@ -22,7 +22,6 @@ public:
 
     bool horarioProgramado(int horaAlvo, int minutoAlvo);
 
-    // NOVAS FUNÇÕES
     void agendarAcionamento(int ano, int mes, int dia,
                             int hora, int minuto, int segundo,
                             int duracaoMinutos);

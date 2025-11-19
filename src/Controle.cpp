@@ -9,7 +9,7 @@ Controle::Controle(DHT11* sensorDHT, RTC* rtc, Rele* rele) {
     umidade = 0.0;
 }
 
-// Agora lerTemperatura() faz a leitura COMPLETA do DHT uma vez só
+// faz a leitura COMPLETA do DHT uma vez só
 void Controle::lerTemperatura() {
 
     if (sensorDHT->atualizar()) {      // lê temperatura E umidade num ciclo só
@@ -24,7 +24,6 @@ void Controle::lerTemperatura() {
 }
 
 void Controle::lerUmidade() {
-    // NÃO ler de novo — DHT11 não aguenta leituras seguidas.
     Serial.print("Umidade: ");
     Serial.println(umidade);
 }

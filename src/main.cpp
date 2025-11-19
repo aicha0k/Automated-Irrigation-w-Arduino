@@ -22,10 +22,10 @@ void setup() {
     moduloRTC.iniciar();
     moduloRele.iniciar();
 
-    // Ajusta RTC para hora do computador
+    // Ajusta RTC mnualmente (descomente para usar)
    // moduloRTC.ajustarHorario(2025, 11, 19, 9, 37, 0);
 
-    // Agendar alarme de 1 minuto para frente
+    // Agendar alarme de 1 minuto para frente - primeiro acionamento
     DateTime agora = moduloRTC.getNow();
     moduloRTC.agendarAcionamento(
         agora.year(), agora.month(), agora.day(),
@@ -52,14 +52,14 @@ void loop() {
 
 
   if (moduloRTC.alarmeLigou()) {
-    Serial.println(">>> ALARME 1 DISPAROU — LIGAR LED <<<");
-    moduloRele.ligar();    // <<< LIGA O LED
+    Serial.println(">>> ALARME 1 DISPAROU — LIGAR RELE <<<");
+    moduloRele.ligar();    // <<< LIGA
 }
 
-// ======== EVENTO DE ALARME 2 (DESLIGAR LED) ========
+// ======== EVENTO DE ALARME 2 (DESLIGAR RELE) ========
 if (moduloRTC.alarmeDesligou()) {
-    Serial.println(">>> ALARME 2 DISPAROU — DESLIGAR LED <<<");
-    moduloRele.desligar(); // <<< DESLIGA O LED
+    Serial.println(">>> ALARME 2 DISPAROU — DESLIGAR RELE <<<");
+    moduloRele.desligar(); // <<< DESLIGA
     moduloRTC.agendarAcionamento(
         moduloRTC.getNow().year(),
         moduloRTC.getNow().month(),
