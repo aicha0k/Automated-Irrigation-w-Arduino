@@ -18,8 +18,8 @@ const char* WIFI_PASSWORD = "123456789";
 ServidorWeb servidor(WIFI_SSID, WIFI_PASSWORD);
 ConfiguracaoPersistente configAtual;
 RTC rtc;
-Rele rele(18); // Pino 5 para o relé
-DHT11 dht11(23); // Pino 4 para o DHT11
+Rele rele(18); // Pino 18 para o relé
+DHT11 dht11(4); // Pino 23 para o DHT11
 Controle controle(&dht11, &rtc, &rele);
 
 // Declaração da rotina principal
