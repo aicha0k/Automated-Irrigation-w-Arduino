@@ -29,7 +29,7 @@ void setup() {
     servidor.iniciarAP();
     configAtual.carregar();
 
-    if (!rtc.iniciar()) {
+    if (!myRTC.iniciar()) {
         Serial.println("Falha ao inicializar o RTC. O agendamento nao funcionará.");
     }
 
@@ -74,7 +74,7 @@ void minhaRotinaDeExecucao() {
         // Você pode refinar a lógica de agendamento diário ou único aqui
         if (ciclo.equalsIgnoreCase("unico") || ciclo.equalsIgnoreCase("diario")) {
             
-            rtc.agendarAcionamento(
+            myRTC.agendarAcionamento(
                 configAtual.getAno(), 
                 configAtual.getMes(), 
                 configAtual.getDia(),
@@ -90,7 +90,7 @@ void minhaRotinaDeExecucao() {
     }
     
     // 2. CHECAGEM DOS ALARMES DO RTC
-    checarAlarmesRTC();
+    //checarAlarmesRTC();
 
     static long lastMsg = 0;
     if (millis() - lastMsg > 5000) { 
