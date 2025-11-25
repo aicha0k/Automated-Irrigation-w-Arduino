@@ -1,32 +1,36 @@
 #include "Controle.h"
-#include <Arduino.h>
 
-Controle::Controle(DHT11* sensorDHT, RTC* rtc, Rele* rele) {
+Controle::Controle(DHT* sensorDHT, RTC* rtc, Rele* rele) {
     this->sensorDHT = sensorDHT;
-    this->rtc = rtc;
-    this->rele = rele;
-    temperatura = 0.0;
-    umidade = 0.0;
+    this->rtc       = rtc;
+    this->rele      = rele;
+    temperatura     = 0.0;
+    umidade         = 0.0;
 }
 
-// Agora lerTemperatura() faz a leitura COMPLETA do DHT uma vez só
+// Lê a temperatura E a umidade em uma única chamada (como deve ser)
 void Controle::lerTemperatura() {
 
-    if (sensorDHT->atualizar()) {      // lê temperatura E umidade num ciclo só
-        temperatura = sensorDHT->getTemperatura();
-        umidade     = sensorDHT->getUmidade();
-    } else {
-        Serial.println("Falha ao atualizar DHT11!");
+    float u = sensorDHT->readHumidity();
+    float t = sensorDHT->readTemperature();
+
+    if (isnan(u) || isnan(t)) {
+        Serial.println("Falha ao ler DHT!");
+        return;
     }
 
+    umidade     = u;
+    temperatura = t;
+
     Serial.print("Temperatura: ");
-    Serial.println(temperatura);
+    Serial.print(temperatura);
+    Serial.println("°C");
 }
 
 void Controle::lerUmidade() {
-    // NÃO ler de novo — DHT11 não aguenta leituras seguidas.
     Serial.print("Umidade: ");
-    Serial.println(umidade);
+    Serial.print(umidade);
+    Serial.println("%");
 }
 
 void Controle::controlarIrrigacao() {
@@ -41,8 +45,9 @@ void Controle::controlarIrrigacao() {
 
 void Controle::testarSistema() {
     Serial.println("=== Teste de Sistema ===");
-    lerTemperatura(); // Já atualiza tudo
-    lerUmidade();     // Só imprime
+
+    lerTemperatura();
+    lerUmidade();
     rtc->mostrarHora();
     controlarIrrigacao();
 }
