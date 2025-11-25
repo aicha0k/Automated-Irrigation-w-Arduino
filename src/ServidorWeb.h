@@ -2,7 +2,6 @@
 #define SERVIDORWEB_H
 
 #include <WiFi.h>
-#include "ControladorValvula.h"
 #include "ConfiguracaoPersistente.h"
 #include "Rele.h"
 
@@ -18,7 +17,15 @@ private:
 
     // Métodos privados
     String getParameterValue(String uri, String param);
-    void gerarPaginaHTML(WiFiClient client, String valvulaEstado);
+
+    void gerarPaginaHTML(
+        WiFiClient client,
+        String valvulaEstado,
+        float temperatura,
+        float umidade,
+        float fluxoAtual,
+        float fluxoTotal
+    );
 
 public:
     // Construtor
@@ -26,7 +33,15 @@ public:
 
     // Métodos públicos
     void iniciarAP();
-    void manusearClientes(Rele& valvula, ConfiguracaoPersistente& config);
+
+    void manusearClientes(
+        Rele& valvula,
+        ConfiguracaoPersistente& config,
+        float temperatura,
+        float umidade,
+        float fluxoAtual,
+        float fluxoTotal
+    );
 };
 
 #endif // SERVIDORWEB_H

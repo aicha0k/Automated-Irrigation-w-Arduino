@@ -60,7 +60,18 @@ void setup() {
 
 // ==== LOOP ====
 void loop() {
-    servidor.manusearClientes(rele, configAtual);
+  float h = dht.readHumidity();
+  float t = dht.readTemperature();
+
+  servidor.manusearClientes(
+    rele,
+    configAtual,
+    t,               // temperatura atual do DHT
+    h,               // umidade atual do DHT
+    fluxo.getVazao(),
+    fluxo.getTotal()
+);
+
     fluxo.atualizarCalculo();
     minhaRotinaDeExecucao();
     delay(10);

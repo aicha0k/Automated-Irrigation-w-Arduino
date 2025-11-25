@@ -1,151 +1,173 @@
 #include "ServidorWeb.h"
-#include <Arduino.h> 
+#include <Arduino.h>
 
-// Construtor (Permanece o mesmo)
-ServidorWeb::ServidorWeb(const char* s, const char* p) 
+// =========================================================
+// CONSTRUTOR
+// =========================================================
+ServidorWeb::ServidorWeb(const char* s, const char* p)
     : ssid(s), password(p), server(80) {}
 
-// Inicialização do AP (Permanece o mesmo)
+
+// =========================================================
+// INICIAR ACCESS POINT
+// =========================================================
 void ServidorWeb::iniciarAP() {
     Serial.print("Configurando Ponto de Acesso...");
     WiFi.softAP(ssid, password);
     Serial.println("Pronto.");
+
     Serial.print("Endereço IP do AP: ");
-    Serial.println(WiFi.softAPIP()); 
-    server.begin(); 
+    Serial.println(WiFi.softAPIP());
+
+    server.begin();
     Serial.println("Servidor web iniciado.");
 }
 
-// Função auxiliar para extrair parâmetros da URI (Permanece a mesma)
+
+// =========================================================
+// EXTRAI PARAMETRO DA URL
+// =========================================================
 String ServidorWeb::getParameterValue(String uri, String param) {
-    String value = "";
     String searchStr = param + "=";
     int startIndex = uri.indexOf(searchStr);
-    
-    if (startIndex > 0) {
-        startIndex += searchStr.length();
-        int endIndex = uri.indexOf('&', startIndex);
-        if (endIndex == -1) {
-            endIndex = uri.indexOf(' ', startIndex);
-        }
-        if (endIndex != -1) {
-            value = uri.substring(startIndex, endIndex);
-        } else {
-            value = uri.substring(startIndex);
-        }
-    }
-    return value;
+
+    if (startIndex < 0) return "";
+
+    startIndex += searchStr.length();
+    int endIndex = uri.indexOf('&', startIndex);
+    if (endIndex < 0) endIndex = uri.indexOf(' ', startIndex);
+
+    return uri.substring(startIndex, endIndex);
 }
 
-// Manuseio principal de clientes (Com as alterações para Redirecionamento)
-void ServidorWeb::manusearClientes(Rele& valvula, ConfiguracaoPersistente& config) {
-    WiFiClient client = server.available(); 
 
-    if (client) { 
-        Serial.println("Novo cliente conectado.");
-        String currentLine = ""; 
-        header = ""; 
+// =========================================================
+// FUNÇÃO PRINCIPAL DO SERVIDOR WEB
+// =========================================================
+void ServidorWeb::manusearClientes(
+    Rele& valvula,
+    ConfiguracaoPersistente& config,
+    float temperatura,
+    float umidade,
+    float fluxoAtual,
+    float fluxoTotal
+) {
+    WiFiClient client = server.available();
 
-        while (client.connected()) { 
-            if (client.available()) { 
-                char c = client.read(); 
-                header += c; 
-                if (c == '\n') { 
-                    if (currentLine.length() == 0) {
-                        
-                        // --- Processamento de Comandos ---
-                        if (header.indexOf("GET /valvula/on") >= 0) {
-                            valvula.ligar(); 
-                            // Redireciona após o comando para limpar a URI
-                            client.println("HTTP/1.1 303 See Other");
-                            client.println("Location: /");
-                            client.println("Connection: close");
-                            client.println();
-                            break; 
-                            
-                        } else if (header.indexOf("GET /valvula/off") >= 0) {
-                            valvula.desligar(); 
-                            // Redireciona após o comando para limpar a URI
-                            client.println("HTTP/1.1 303 See Other");
-                            client.println("Location: /");
-                            client.println("Connection: close");
-                            client.println();
-                            break;
-                            
-                        } else if (header.indexOf("GET /save") >= 0) {
-                            
-                            int startUri = header.indexOf("GET /save");
-                            int endUri = header.indexOf(" HTTP/1.1");
-                            String uri = header.substring(startUri + 4, endUri); 
-                            
-                            // Extração
-                            String pDia = getParameterValue(uri, "dia");
-                            String pMes = getParameterValue(uri, "mes");
-                            String pAno = getParameterValue(uri, "ano");
-                            String pHora = getParameterValue(uri, "hora");
-                            String pMinuto = getParameterValue(uri, "minuto");
-                            String pSegundo = getParameterValue(uri, "segundo");
-                            String pDuracao = getParameterValue(uri, "duracao");
-                            String pCiclo = getParameterValue(uri, "ciclo");
+    if (!client) return;
 
-                            // Salva na RAM e na Flash
-                            config.salvarTemporariamente(pDia.toInt(), pMes.toInt(), pAno.toInt(), pHora.toInt(), 
-                                                        pMinuto.toInt(), pSegundo.toInt(), pDuracao.toInt(), pCiclo);
-                            config.salvar(); 
-                            
-                            Serial.println("✅ Configuracao Salva e Persistida na Flash. Redirecionando...");
+    Serial.println("Novo cliente conectado.");
+    String currentLine = "";
+    header = "";
 
-                            // AQUI ESTÁ A SOLUÇÃO: REDIRECIONAMENTO HTTP 303
-                            client.println("HTTP/1.1 303 See Other"); // Código de status para redirecionamento
-                            client.println("Location: /");           // Redireciona para a página inicial
-                            client.println("Connection: close");
-                            client.println();
-                            break;
-                            
-                        }
-                        // --- Fim do Processamento ---
+    while (client.connected()) {
+        if (client.available()) {
+            char c = client.read();
+            header += c;
 
-                        // Se a requisição for para a página inicial ('/'), gera o HTML normalmente.
-                        if (header.indexOf("GET / ") >= 0 || header.indexOf("GET /favicon.ico") < 0) {
-                            String estado;
-                            if(valvula.estaLigado()){
-                                estado = "on"; 
-                            } else {
-                                estado = "off";
-                            }
-                            gerarPaginaHTML(client, estado); 
-                        }
+            if (c == '\n') {
+                if (currentLine.length() == 0) {
 
+                    // =========================================================
+                    // CONTROLE DA VÁLVULA
+                    // =========================================================
+                    if (header.indexOf("GET /valvula/on") >= 0) {
+                        valvula.ligar();
+                        client.println("HTTP/1.1 303 See Other");
+                        client.println("Location: /");
                         client.println();
                         break;
-                    } else { 
-                        currentLine = "";
                     }
-                } else if (c!= '\r') { 
-                    currentLine += c;
+
+                    if (header.indexOf("GET /valvula/off") >= 0) {
+                        valvula.desligar();
+                        client.println("HTTP/1.1 303 See Other");
+                        client.println("Location: /");
+                        client.println();
+                        break;
+                    }
+
+                    // =========================================================
+                    // SALVAR CONFIGURAÇÕES
+                    // =========================================================
+                    if (header.indexOf("GET /save") >= 0) {
+                        int startUri = header.indexOf("GET /save");
+                        int endUri = header.indexOf(" HTTP/1.1");
+                        String uri = header.substring(startUri + 4, endUri);
+
+                        config.salvarTemporariamente(
+                            getParameterValue(uri, "dia").toInt(),
+                            getParameterValue(uri, "mes").toInt(),
+                            getParameterValue(uri, "ano").toInt(),
+                            getParameterValue(uri, "hora").toInt(),
+                            getParameterValue(uri, "minuto").toInt(),
+                            getParameterValue(uri, "segundo").toInt(),
+                            getParameterValue(uri, "duracao").toInt(),
+                            getParameterValue(uri, "ciclo")
+                        );
+
+                        config.salvar();
+
+                        Serial.println("Configuração salva.");
+
+                        client.println("HTTP/1.1 303 See Other");
+                        client.println("Location: /");
+                        client.println();
+                        break;
+                    }
+
+                    // =========================================================
+                    // PÁGINA PRINCIPAL
+                    // =========================================================
+                    String estado = valvula.estaLigado() ? "on" : "off";
+
+                    gerarPaginaHTML(
+                        client,
+                        estado,
+                        temperatura,
+                        umidade,
+                        fluxoAtual,
+                        fluxoTotal
+                    );
+
+                    client.println();
+                    break;
+                } else {
+                    currentLine = "";
                 }
+            } else if (c != '\r') {
+                currentLine += c;
             }
         }
-        client.stop();
-        Serial.println("Cliente desconectado.");
     }
+
+    client.stop();
+    Serial.println("Cliente desconectado.");
 }
 
-// Método para gerar e enviar a página HTML (Permanece o mesmo, mas só será chamado no '/' agora)
-void ServidorWeb::gerarPaginaHTML(WiFiClient client, String valvulaEstado) {
-    // ... (O código de geração do HTML permanece inalterado)
+
+// =========================================================
+// GERAR HTML COMPLETO
+// =========================================================
+void ServidorWeb::gerarPaginaHTML(
+    WiFiClient client,
+    String valvulaEstado,
+    float temperatura,
+    float umidade,
+    float fluxoAtual,
+    float fluxoTotal
+) {
     client.println("HTTP/1.1 200 OK");
     client.println("Content-type:text/html");
     client.println("Connection: close");
     client.println(); 
     
-    // Início do Documento HTML
     client.println("<!DOCTYPE html><html lang=\"pt-br\">");
     client.println("<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
     client.println("<meta charset=\"UTF-8\">");
     client.println("<title>Controle da Horta</title>");
     
-    // CSS Embutido para estilizar a página
+    // === CSS ORIGINAL PRESERVADO ===
     client.println("<style>");
     client.println("body { font-family: Arial, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 0; }");
     client.println(".container { max-width: 600px; margin: 20px auto; padding: 20px; }");
@@ -168,10 +190,10 @@ void ServidorWeb::gerarPaginaHTML(WiFiClient client, String valvulaEstado) {
     
     client.println("</head><body><div class='container'>");
     
-    // Título
+    // === Título ===
     client.println("<h1><span>&#9881;</span>Controle Remoto da Horta</h1>");
 
-    // --- Bloco de Status da Válvula (Dinâmico) ---
+    // === Status da válvula ===
     client.println("<div class='status-box'>");
     if (valvulaEstado == "off") {
         client.println("<p>Status atual da válvula: <span class='status-text-off'>Desligada</span></p>");
@@ -182,7 +204,16 @@ void ServidorWeb::gerarPaginaHTML(WiFiClient client, String valvulaEstado) {
     }
     client.println("</div>");
 
-    // --- Bloco do Formulário de Acionamento ---
+    // === NOVA SEÇÃO: SENSORES ===
+    client.println("<div class='card'>");
+    client.println("<h2>Sensores</h2>");
+    client.printf("<p><b>Temperatura:</b> %.1f °C</p>", temperatura);
+    client.printf("<p><b>Umidade:</b> %.1f %%</p>", umidade);
+    client.printf("<p><b>Fluxo Atual:</b> %.2f L/min</p>", fluxoAtual);
+    client.printf("<p><b>Total Irrigado:</b> %.2f L</p>", fluxoTotal);
+    client.println("</div>");
+
+    // === FORMULÁRIO ANTIGO (NÃO ALTERADO) ===
     client.println("<div class='card'>");
     client.println("<h2>Definir acionamento</h2>");
     client.println("<form action='/save' method='GET'>");
@@ -218,6 +249,5 @@ void ServidorWeb::gerarPaginaHTML(WiFiClient client, String valvulaEstado) {
     
     client.println("</form></div>");
     
-    // Fim do Documento
     client.println("</div></body></html>");
 }
