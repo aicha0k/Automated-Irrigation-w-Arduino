@@ -40,6 +40,9 @@ void setup() {
     fluxo.iniciar();
     dht.begin();
     rele.iniciar();
+    rtc.iniciar();
+    //rtc.ajustarHorario(2025, 11, 27,
+    //    11, 47, 0);  // Ajusta para uma data fixa (teste)
 
     if (!rtc.iniciar()) {
         Serial.println("Falha ao inicializar o RTC. O agendamento nao funcionará.");
@@ -60,22 +63,50 @@ void setup() {
 
 // ==== LOOP ====
 void loop() {
-  float h = dht.readHumidity();
-  float t = dht.readTemperature();
 
-  servidor.manusearClientes(
-    rele,
-    configAtual,
-    t,               // temperatura atual do DHT
-    h,               // umidade atual do DHT
-    fluxo.getVazao(),
-    fluxo.getTotal()
-);
+    // === 1. LEITURA DO DHT11 (biblioteca Adafruit) ===
+    float h = dht.readHumidity();
+    float t = dht.readTemperature();
 
-    fluxo.atualizarCalculo();
+    if (isnan(h) || isnan(t)) {
+        Serial.println("Falha ao ler DHT!");
+    }
+
+    // === 2. ATUALIZAÇÃO DO SENSOR DE FLUXO ===
+    fluxo.atualizarCalculo();  
+    float vazao = fluxo.getVazao();
+    float total = fluxo.getTotal();
+
+    // === 3. HORÁRIO ATUAL VIA RTC ===
+    DateTime agora = rtc.getNow();
+    String horarioAtual = String(agora.hour()) + ":" +
+                          String(agora.minute()) + ":" +
+                          String(agora.second());
+    
+    String dataAtual =
+                          String(agora.day()) + "/" +
+                          String(agora.month()) + "/" +
+                          String(agora.year());
+
+    // === 4. SERVIDOR WEB (passando TODOS os parâmetros) ===
+    servidor.manusearClientes(
+        rele,
+        configAtual,
+        t,          // temperatura
+        h,          // umidade
+        vazao,      // fluxo L/min
+        total,      // total irrigado
+        horarioAtual,
+        dataAtual
+    );
+
+    // === 5. ROTINA PRINCIPAL (alarmes, re-agendamentos, logs) ===
     minhaRotinaDeExecucao();
+
+    // Pequeno delay para estabilidade do loop
     delay(10);
 }
+
 
 // ==== ROTINA PRINCIPAL ====
 void minhaRotinaDeExecucao() {

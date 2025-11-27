@@ -24,7 +24,9 @@ private:
         float temperatura,
         float umidade,
         float fluxoAtual,
-        float fluxoTotal
+        float fluxoTotal,
+        String horarioAtual,
+        String dataAtual
     );
 
 public:
@@ -40,7 +42,9 @@ public:
         float temperatura,
         float umidade,
         float fluxoAtual,
-        float fluxoTotal
+        float fluxoTotal,
+        String horarioAtual,
+        String dataAtual
     );
 };
 
