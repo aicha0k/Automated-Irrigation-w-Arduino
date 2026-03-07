@@ -15,7 +15,7 @@ void Controle::lerTemperatura() {
     float t = sensorDHT->readTemperature();
 
     if (isnan(u) || isnan(t)) {
-        Serial.println("Falha ao ler DHT!");
+        // Serial.println("Falha ao ler DHT!");
         return;
     }
 

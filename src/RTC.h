@@ -42,7 +42,7 @@ public:
 
     DateTime getHorarioOn() { return horarioOn; }
     DateTime getHorarioOff() { return horarioOff; }
-    DateTime getNow(){ return rtc.now(); };
+    DateTime getNow(){ return rtc.now(); }
 
 };
 

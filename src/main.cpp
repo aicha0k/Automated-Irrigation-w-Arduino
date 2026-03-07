@@ -69,7 +69,7 @@ void loop() {
     float t = dht.readTemperature();
 
     if (isnan(h) || isnan(t)) {
-        Serial.println("Falha ao ler DHT!");
+       //  Serial.println("Falha ao ler DHT!");
     }
 
     // === 2. ATUALIZAÇÃO DO SENSOR DE FLUXO ===

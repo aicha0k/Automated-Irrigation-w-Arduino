@@ -179,6 +179,14 @@ void ServidorWeb::gerarPaginaHTML(
     client.println(".status-box, .card { background: white; border-radius: 12px; padding: 20px; margin-top: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }");
     client.println(".status-text-on { color: #28a745; font-weight: bold; }");
     client.println(".status-text-off { color: #dc3545; font-weight: bold; }");
+
+    /* novos estilos do formulário */
+    client.println("form { display: flex; flex-direction: column; gap: 12px; }");
+    client.println(".form-group { display: flex; flex-direction: column; }");
+    client.println("label { font-weight: bold; margin-bottom: 4px; }");
+    client.println("input, select { padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; width: 100%; box-sizing: border-box; }");
+    client.println("button { margin-top: 10px; padding: 12px; border: none; border-radius: 8px; background-color: #28a745; color: white; font-size: 16px; cursor: pointer; }");
+    client.println("button:hover { background-color: #218838; }");
     client.println("</style>");
     
     client.println("</head><body><div class='container'>");
@@ -217,20 +225,49 @@ void ServidorWeb::gerarPaginaHTML(
     client.println("<div class='card'>");
     client.println("<h2>Programar Irrigação</h2>");
     client.println("<form action='/save' method='GET'>");
-    
-    client.println("<label>Dia:</label><input type='text' name='dia'>");
-    client.println("<label>Mês:</label><input type='text' name='mes'>");
-    client.println("<label>Ano:</label><input type='text' name='ano'>");
-    client.println("<label>Hora:</label><input type='text' name='hora'>");
-    client.println("<label>Minuto:</label><input type='text' name='minuto'>");
-    client.println("<label>Segundo:</label><input type='text' name='segundo'>");
-    client.println("<label>Duração (min):</label><input type='text' name='duracao'>");
 
-    client.println("<label>Ciclo:</label>");
-    client.println("<select name='ciclo'>");
+    client.println("<div class='form-group'>");
+    client.println("<label for='dia'>Dia:</label>");
+    client.println("<input type='text' id='dia' name='dia'>");
+    client.println("</div>");
+
+    client.println("<div class='form-group'>");
+    client.println("<label for='mes'>Mês:</label>");
+    client.println("<input type='text' id='mes' name='mes'>");
+    client.println("</div>");
+
+    client.println("<div class='form-group'>");
+    client.println("<label for='ano'>Ano:</label>");
+    client.println("<input type='text' id='ano' name='ano'>");
+    client.println("</div>");
+
+    client.println("<div class='form-group'>");
+    client.println("<label for='hora'>Hora:</label>");
+    client.println("<input type='text' id='hora' name='hora'>");
+    client.println("</div>");
+
+    client.println("<div class='form-group'>");
+    client.println("<label for='minuto'>Minuto:</label>");
+    client.println("<input type='text' id='minuto' name='minuto'>");
+    client.println("</div>");
+
+    client.println("<div class='form-group'>");
+    client.println("<label for='segundo'>Segundo:</label>");
+    client.println("<input type='text' id='segundo' name='segundo'>");
+    client.println("</div>");
+
+    client.println("<div class='form-group'>");
+    client.println("<label for='duracao'>Duração (min):</label>");
+    client.println("<input type='text' id='duracao' name='duracao'>");
+    client.println("</div>");
+
+    client.println("<div class='form-group'>");
+    client.println("<label for='ciclo'>Ciclo:</label>");
+    client.println("<select id='ciclo' name='ciclo'>");
     client.println("<option value='diario'>Diário</option>");
     client.println("<option value='unico'>Único</option>");
     client.println("</select>");
+    client.println("</div>");
 
     client.println("<button type='submit'>Salvar</button>");
     client.println("</form></div>");

@@ -5,21 +5,22 @@ RTC::RTC() {}
 
 bool RTC::iniciar() {
     if (!rtc.begin()) {
-        Serial.println("Erro ao iniciar RTC!");
+        Serial.println("RTC não encontrado!");
+        Serial.flush();
         return false;
     }
 
+    // Só ajusta se o RTC realmente perdeu a alimentação/horário
     if (rtc.lostPower()) {
-        Serial.println("RTC sem dados de tempo, ajustando para data/hora de compilação...");
+        Serial.println("RTC perdeu a hora. Ajustando...");
         rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
     }
 
-    rtc.disableAlarm(1);
-    rtc.disableAlarm(2);
-    
+    rtc.disable32K();
     rtc.clearAlarm(1);
     rtc.clearAlarm(2);
-    
+    rtc.writeSqwPinMode(DS3231_OFF);
+    rtc.disableAlarm(2);
 
     return true;
 }
@@ -30,6 +31,7 @@ void RTC::atualizarHora() {
 
 void RTC::mostrarHora() {
     atualizarHora();
+
     char buffer[40];
     sprintf(buffer, "Hora atual: %02d:%02d:%02d",
             agora.hour(), agora.minute(), agora.second());
@@ -38,8 +40,11 @@ void RTC::mostrarHora() {
 
 String RTC::horaFormatada() {
     atualizarHora();
+
     char buffer[10];
-    sprintf(buffer, "%02d:%02d:%02d", agora.hour(), agora.minute(), agora.second());
+    sprintf(buffer, "%02d:%02d:%02d",
+            agora.hour(), agora.minute(), agora.second());
+
     return String(buffer);
 }
 
@@ -49,40 +54,37 @@ bool RTC::horarioProgramado(int horaAlvo, int minutoAlvo) {
 }
 
 void RTC::agendarAcionamento(int ano, int mes, int dia,
-    int hora, int minuto, int segundo,
-    int duracaoMinutos)
-{
-horarioOn = DateTime(ano, mes, dia, hora, minuto, segundo);
-horarioOff = horarioOn + TimeSpan(0, 0, duracaoMinutos, 0);
+                             int hora, int minuto, int segundo,
+                             int duracaoMinutos) {
+    horarioOn = DateTime(ano, mes, dia, hora, minuto, segundo);
+    horarioOff = horarioOn + TimeSpan(0, 0, duracaoMinutos, 0);
 
-rtc.setAlarm1(horarioOn, DS3231_A1_Hour);
-rtc.setAlarm2(horarioOff, DS3231_A2_Hour);
+    rtc.setAlarm1(horarioOn, DS3231_A1_Hour);
+    rtc.setAlarm2(horarioOff, DS3231_A2_Hour);
 
-Serial.println();
-Serial.println("=== Alarme configurado ===");
+    Serial.println();
+    Serial.println("=== Alarme configurado ===");
 
-char buffer1[80];
-sprintf(buffer1, "Ligar:    %02d/%02d/%04d %02d:%02d:%02d",
-horarioOn.day(), horarioOn.month(), horarioOn.year(),
-horarioOn.hour(), horarioOn.minute(), horarioOn.second());
-Serial.println(buffer1);
+    char buffer1[80];
+    sprintf(buffer1, "Ligar:    %02d/%02d/%04d %02d:%02d:%02d",
+            horarioOn.day(), horarioOn.month(), horarioOn.year(),
+            horarioOn.hour(), horarioOn.minute(), horarioOn.second());
+    Serial.println(buffer1);
 
-char buffer2[80];
-sprintf(buffer2, "Desligar: %02d/%02d/%04d %02d:%02d:%02d",
-horarioOff.day(), horarioOff.month(), horarioOff.year(),
-horarioOff.hour(), horarioOff.minute(), horarioOff.second());
-Serial.println(buffer2);
+    char buffer2[80];
+    sprintf(buffer2, "Desligar: %02d/%02d/%04d %02d:%02d:%02d",
+            horarioOff.day(), horarioOff.month(), horarioOff.year(),
+            horarioOff.hour(), horarioOff.minute(), horarioOff.second());
+    Serial.println(buffer2);
 }
 
 void RTC::ajustarParaHoraDoComputador() {
-    // Usa data e hora da máquina no momento da compilação
     DateTime novoHorario(F(__DATE__), F(__TIME__));
-    
     rtc.adjust(novoHorario);
 
     Serial.println("\n=== RTC ajustado para a hora do computador ===");
 
-    char buffer[40];
+    char buffer[50];
     sprintf(buffer, "Nova hora: %02d/%02d/%04d %02d:%02d:%02d",
             novoHorario.day(), novoHorario.month(), novoHorario.year(),
             novoHorario.hour(), novoHorario.minute(), novoHorario.second());
@@ -90,27 +92,25 @@ void RTC::ajustarParaHoraDoComputador() {
 }
 
 void RTC::ajustarHorario(int ano, int mes, int dia,
-    int hora, int minuto, int segundo)
-{
-DateTime novoHorario(ano, mes, dia, hora, minuto, segundo);
-rtc.adjust(novoHorario);
+                         int hora, int minuto, int segundo) {
+    DateTime novoHorario(ano, mes, dia, hora, minuto, segundo);
+    rtc.adjust(novoHorario);
 
-Serial.println("\n=== Horário do RTC atualizado ===");
+    Serial.println("\n=== Horário do RTC atualizado ===");
 
-char buffer[40];
-sprintf(buffer, "Novo horario: %02d/%02d/%04d %02d:%02d:%02d",
-novoHorario.day(), novoHorario.month(), novoHorario.year(),
-novoHorario.hour(), novoHorario.minute(), novoHorario.second());
-Serial.println(buffer);
+    char buffer[50];
+    sprintf(buffer, "Novo horario: %02d/%02d/%04d %02d:%02d:%02d",
+            novoHorario.day(), novoHorario.month(), novoHorario.year(),
+            novoHorario.hour(), novoHorario.minute(), novoHorario.second());
+    Serial.println(buffer);
 }
 
-void RTC::agendarCicloDiario(int horaInicial, int minutoInicial, int repeticoes)
-{
-    DateTime agora = rtc.now();
+void RTC::agendarCicloDiario(int horaInicial, int minutoInicial, int repeticoes) {
+    DateTime agoraLocal = rtc.now();
 
-    int ano = agora.year();
-    int mes = agora.month();
-    int dia = agora.day();
+    int ano = agoraLocal.year();
+    int mes = agoraLocal.month();
+    int dia = agoraLocal.day();
 
     int intervaloHoras = 24 / repeticoes;
 
@@ -118,17 +118,16 @@ void RTC::agendarCicloDiario(int horaInicial, int minutoInicial, int repeticoes)
     horarioOn = DateTime(ano, mes, dia, horaInicial, minutoInicial, 0);
     horarioOff = horarioOn + TimeSpan(0, 0, 1, 0);  // 1 minuto de duração
 
-    // Agenda o primeiro
     rtc.setAlarm1(horarioOn, DS3231_A1_Hour);
     rtc.setAlarm2(horarioOff, DS3231_A2_Hour);
 
     Serial.println("\n=== CICLO DIÁRIO CONFIGURADO ===");
-    
+
     for (int i = 0; i < repeticoes; i++) {
         DateTime lig = horarioOn + TimeSpan(0, intervaloHoras * i, 0, 0);
         DateTime des = lig + TimeSpan(0, 0, 1, 0);
 
-        char buff[50];
+        char buff[80];
         sprintf(buff, "Ciclo %d -> Ligar: %02d:%02d  |  Desligar: %02d:%02d",
                 i + 1,
                 lig.hour(), lig.minute(),
@@ -136,8 +135,6 @@ void RTC::agendarCicloDiario(int horaInicial, int minutoInicial, int repeticoes)
         Serial.println(buff);
     }
 }
-
-
 
 bool RTC::alarmeLigou() {
     if (rtc.alarmFired(1)) {
@@ -154,5 +151,3 @@ bool RTC::alarmeDesligou() {
     }
     return false;
 }
-
-
